@@ -36,7 +36,7 @@ clean: down
 	docker system prune -a --force
 
 fclean: down
-	@echo " FULL PURGE: Removing all data and volumes... "
+	@echo "FULL PURGE: Removing all data and volumes..."
 	# Remove the actual files on the host
 	@sudo rm -rf $(DATA_DIR)
 	# Remove the docker volumes themselves
