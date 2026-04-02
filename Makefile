@@ -1,18 +1,19 @@
-# Variables
 COMPOSE_FILE = srcs/docker-compose.yml
-DATA_DIR = /home/kgriset/data
+DATA_DIR = $(HOME)/data
 
-# Phony targets ensure these names are always treated as commands, not files
+# List of all data subdirectories for our volumes
+VOL_DIRS = $(DATA_DIR)/wordpress $(DATA_DIR)/mariadb $(DATA_DIR)/portainer
+
 .PHONY: all up down start stop clean fclean re logs
 
-# The default rule when you just type 'make'
+# Default rule
 all: up
 
 up:
-	@echo "Creating data directories if they don't exist..."
-	@sudo mkdir -p $(DATA_DIR)/wordpress
-	@sudo mkdir -p $(DATA_DIR)/mariadb
-	@echo "Starting Inception..."
+	@echo "Creating data directories at $(DATA_DIR)..."
+	@sudo mkdir -p $(VOL_DIRS)
+	@sudo chmod -R 777 $(DATA_DIR)
+	@echo "Starting all Inception services (including bonuses)..."
 	docker compose -f $(COMPOSE_FILE) up -d --build
 
 down:
@@ -20,24 +21,28 @@ down:
 	docker compose -f $(COMPOSE_FILE) down
 
 stop:
-	@echo "Pausing Inception..."
+	@echo "Pausing containers..."
 	docker compose -f $(COMPOSE_FILE) stop
 
 start:
-	@echo "Resuming Inception..."
+	@echo "Resuming containers..."
 	docker compose -f $(COMPOSE_FILE) start
 
 logs:
 	docker compose -f $(COMPOSE_FILE) logs -f
 
 clean: down
-	@echo "Cleaning up Docker environment..."
+	@echo "Cleaning up Docker environment (images and networks)..."
 	docker system prune -a --force
 
-fclean: clean
-	@echo "Removing all data volumes..."
-	@sudo rm -rf $(DATA_DIR)/wordpress/*
-	@sudo rm -rf $(DATA_DIR)/mariadb/*
-	docker volume rm $$(docker volume ls -q) 2>/dev/null || true
+fclean: down
+	@echo " FULL PURGE: Removing all data and volumes... "
+	# Remove the actual files on the host
+	@sudo rm -rf $(DATA_DIR)
+	# Remove the docker volumes themselves
+	@if [ $$(docker volume ls -q | wc -l) -gt 0 ]; then \
+		docker volume rm $$(docker volume ls -q); \
+	fi
+	@echo "System is clean."
 
 re: fclean all
