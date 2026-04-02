@@ -1,0 +1,107 @@
+services:
+  portainer:
+      container_name: portainer
+      build: requirements/bonus/portainer
+      restart: on-failure
+      networks:
+        - inception_network
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - portainer_data:/data
+      ports:
+        - "9000:9000"
+  ftp:
+    container_name: ftp
+    build: requirements/bonus/ftp
+    restart: on-failure
+    env_file: .env
+    networks:
+      - inception_network
+    volumes:
+      - wp_data:/var/www/html
+    ports:
+      - "21:21"
+      - "40000-40005:40000-40005"
+  static_site:
+    container_name: static_site
+    build: requirements/bonus/static
+    restart: on-failure
+    networks:
+      - inception_network
+  adminer:
+    container_name: adminer
+    build: requirements/bonus/adminer
+    restart: on-failure
+    networks:
+      - inception_network
+  redis:
+    container_name: redis
+    build: requirements/bonus/redis
+    restart: on-failure
+    networks:
+      - inception_network
+
+  wordpress:
+    container_name: wordpress
+    build: requirements/wordpress
+    restart: on-failure
+    env_file: .env
+    depends_on:
+      - mariadb
+      - redis
+    networks:
+      - inception_network
+    volumes:
+      - wp_data:/var/www/html
+
+  mariadb:
+    container_name: mariadb
+    build: requirements/mariadb
+    restart: on-failure
+    env_file: .env
+    networks:
+      - inception_network
+    volumes:
+      - db_data:/var/lib/mysql
+
+  nginx:
+    container_name: nginx
+    build: requirements/nginx
+    restart: on-failure
+    env_file: .env
+    depends_on:
+      - wordpress
+    networks:
+      - inception_network
+    ports:
+      - "443:443"
+    volumes:
+      - wp_data:/var/www/html
+
+networks:
+  inception_network:
+    name: inception_network
+    driver: bridge
+
+volumes:
+  db_data:
+    name: db_data
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/kgriset/data/mariadb
+  wp_data:
+    name: wp_data
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/kgriset/data/wordpress
+  portainer_data:
+    name: portainer_data
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/kgriset/data/portainer
