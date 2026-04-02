@@ -41,7 +41,7 @@ The goal of this project is to:
 1. **Clone the repository**
    ```bash
    cd ~
-   git clone <repository_url> inception
+   git clone https://github.com/iluvshiwoon/inception.git inception
    cd inception
    ```
 
