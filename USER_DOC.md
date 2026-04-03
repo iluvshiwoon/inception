@@ -277,7 +277,7 @@ Expected: mariadb container running
 ### Verify MariaDB Database Exists
 
 ```bash
-docker exec mariadb mysql -u root -e "SHOW DATABASES;"
+docker exec mariadb mysql -u root -p<SQL_ROOT_PASSWORD> -e "SHOW DATABASES;"
 ```
 
 Expected: Should show wordpress_db database
@@ -285,7 +285,7 @@ Expected: Should show wordpress_db database
 ### Verify Database Not Empty
 
 ```bash
-docker exec mariadb mysql -u root wordpress_db -e "SHOW TABLES;"
+docker exec mariadb mysql -u root -p<SQL_ROOT_PASSWORD> wordpress_db -e "SHOW TABLES;"
 ```
 
 Expected: Should show WordPress tables (wp_posts, wp_users, wp_options, etc.)
@@ -403,54 +403,144 @@ docker exec wordpress wp --allow-root post update <page_id> --post_title="Update
 
 ---
 
-## Verify Bonus Services
+## Using Bonus Services
 
-### Check All Bonus Containers Running
+### Redis Cache
 
+**Purpose**: Object caching for WordPress performance - reduces database queries
+
+**Access**: Internal (connected to WordPress)
+
+**Demonstrate it's working**:
 ```bash
-docker ps | grep -E "redis|ftp|adminer|portainer|static_site"
-```
-
-Expected: All 5 bonus containers running
-
-### Verify Redis Cache Connected
-
-```bash
+# Check Redis is connected to WordPress
 docker exec wordpress wp --allow-root redis status
+
+# Expected output:
+# Status: Connected
+# Ping: PONG
 ```
 
-Expected:
-- Status: Connected
-- Ping: PONG
-
-### Verify FTP Server
-
+**Demonstrate cache is being used**:
 ```bash
-docker ps | grep ftp
-# Test connection
-curl ftp://localhost/ --user kgriset_ftp:<password>
+# Check object cache is enabled
+docker exec wordpress wp --allow-root option get object_cache_version
+
+# Check Redis memory usage
+docker exec redis redis-cli info memory
 ```
 
-### Verify Adminer
+---
 
+### FTP Server
+
+**Purpose**: Upload/manage WordPress files remotely via FTP
+
+**Access**: `localhost:21`
+
+**List WordPress files via FTP**:
 ```bash
-docker ps | grep adminer
-docker exec adminer ls /var/www/html/index.php
+# List files in WordPress directory
+curl ftp://localhost/ --user kgriset_ftp:$FTP_PASSWORD
+
+# Expected: Shows wp-config.php, wp-admin/, wp-content/, etc.
 ```
 
-### Verify Portainer
-
+**Upload a test file via FTP**:
 ```bash
-docker ps | grep portainer
-curl -I http://localhost:9000
+# Create test file
+echo "Test file from FTP" > /tmp/test_ftp.txt
+
+# Upload via FTP
+curl -T /tmp/test_ftp.txt ftp://localhost/ --user kgriset_ftp:$FTP_PASSWORD
+
+# Verify file exists in WordPress volume
+docker exec wordpress ls -la /var/www/html/test_ftp.txt
+# Expected: File appears in WordPress directory
 ```
 
-### Verify Static Site
+---
 
+### Adminer
+
+**Purpose**: Web-based database management interface
+
+**Access**: https://kgriset.42.fr/adminer
+
+**Login credentials**:
+- Server: `mariadb`
+- Username: `wp_user` (from .env SQL_USER)
+- Password: `SQL_PASSWORD` (from .env)
+- Database: `wordpress_db`
+
+**Demonstrate it's accessible**:
 ```bash
-docker ps | grep static_site
-curl http://localhost:8081
+# Check Adminer is serving
+curl -k https://kgriset.42.fr/adminer
+
+# Expected: HTML form with login page
 ```
+
+**What you can do in Adminer**:
+1. Login with WordPress database credentials
+2. Browse tables: `wp_posts`, `wp_users`, `wp_options`, `wp_terms`
+3. Run SQL queries: `SELECT * FROM wp_posts LIMIT 5;`
+4. View and edit database records
+
+---
+
+### Portainer
+
+**Purpose**: Docker container management UI - view/manage all containers
+
+**Access**: http://localhost:9000
+
+**First-time setup**:
+1. Open http://localhost:9000
+2. Create admin password
+3. Select "Docker" endpoint
+
+**Demonstrate all containers visible**:
+```bash
+# Verify Portainer can see all containers
+curl -s http://localhost:9000/api/system/info | head -50
+```
+
+**What you can do in Portainer**:
+1. View all 8 containers running
+2. View container logs (click container → Logs)
+3. Inspect container details (network, environment variables)
+4. Restart/stop containers via UI
+5. View volumes and their mount points
+
+---
+
+### Static Site
+
+**Purpose**: Python-based static website served via NGINX
+
+**Access**: https://kgriset.42.fr/static
+
+**View static site content**:
+```bash
+# Get static site page content
+curl -k https://kgriset.42.fr/static
+
+# Expected: HTML page content (not 404 or redirect)
+```
+
+**Verify it's the Python server**:
+```bash
+# Check static_site container is responding
+curl http://static_site:8081/
+
+# Expected: Same HTML content as above
+```
+
+**What the static site demonstrates**:
+- Python HTTP server running in container
+- NGINX proxy_pass working correctly
+- Different technology stack from WordPress (Python vs PHP)
 
 ---
 

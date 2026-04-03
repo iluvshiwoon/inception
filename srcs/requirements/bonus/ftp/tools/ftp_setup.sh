@@ -1,10 +1,25 @@
-#!/bin/bash
+#!/usr/bin/env python3
 
-useradd -m $FTP_USER
-echo "$FTP_USER:$FTP_PASSWORD" | chpasswd
+import os
+import sys
+from pyftpdlib.authorizers import DummyAuthorizer
+from pyftpdlib.handlers import FTPHandler
+from pyftpdlib.servers import FTPServer
 
-echo "$FTP_USER" > /etc/vsftpd.userlist
+FTP_USER = os.environ.get('FTP_USER', 'kgriset_ftp')
+FTP_PASSWORD = os.environ.get('FTP_PASSWORD', 'password')
 
-chown -R $FTP_USER:$FTP_USER /var/www/html
+authorizer = DummyAuthorizer()
+authorizer.add_user(FTP_USER, FTP_PASSWORD, '/var/www/html', perm='elr')
 
-exec vsftpd /etc/vsftpd.conf
+handler = FTPHandler
+handler.authorizer = authorizer
+handler.passive_ports = range(40000, 40006)
+
+server = FTPServer(('0.0.0.0', 21), handler)
+server.max_cons = 256
+server.max_cons_per_ip = 5
+
+print(f"Starting FTP server for user {FTP_USER}")
+sys.stdout.flush()
+server.serve_forever()

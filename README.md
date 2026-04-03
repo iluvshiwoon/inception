@@ -177,7 +177,7 @@ This project uses **Docker named volumes with bind driver** because:
 This project implements 5 bonus services as allowed by the subject:
 
 1. **Redis Cache** - Object caching for WordPress to improve performance
-2. **FTP Server** - vsftpd container for managing WordPress files
+2. **FTP Server** - pyftpdlib container for managing WordPress files
 3. **Static Website** - Python-based HTTP server with static HTML
 4. **Adminer** - Web-based database management interface
 5. **Portainer** - Docker container management dashboard
