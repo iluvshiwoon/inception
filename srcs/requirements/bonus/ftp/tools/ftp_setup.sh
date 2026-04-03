@@ -6,15 +6,19 @@ from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
 
+if not os.path.exists('/var/ftp'):
+    os.makedirs('/var/ftp')
+
 FTP_USER = os.environ.get('FTP_USER', 'kgriset_ftp')
 FTP_PASSWORD = os.environ.get('FTP_PASSWORD', 'password')
 
 authorizer = DummyAuthorizer()
-authorizer.add_user(FTP_USER, FTP_PASSWORD, '/var/www/html', perm='elr')
+authorizer.add_user(FTP_USER, FTP_PASSWORD, '/var/www/html', perm='elradmfwMT')
 
 handler = FTPHandler
 handler.authorizer = authorizer
 handler.passive_ports = range(40000, 40006)
+handler.permit_foreign_addresses = True
 
 server = FTPServer(('0.0.0.0', 21), handler)
 server.max_cons = 256
