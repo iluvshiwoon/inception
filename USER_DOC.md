@@ -423,12 +423,19 @@ docker exec wordpress wp --allow-root redis status
 
 **Demonstrate cache is being used**:
 ```bash
-# Check object cache is enabled
-docker exec wordpress wp --allow-root option get object_cache_version
+# Check Redis has processed commands (shows it's being used)
+docker exec redis redis-cli info stats | grep -E "total_commands_processed|keyspace_hits"
 
-# Check Redis memory usage
-docker exec redis redis-cli info memory
+# Expected output:
+# total_commands_processed: 387 (or higher)
+# keyspace_hits: 167
 ```
+
+**What Redis does for WordPress**:
+- Stores object cache in memory (faster than database queries)
+- Caches transients, options, post meta, user data
+- Reduces database load significantly
+- "Metrics recorded: 10" shows metrics are being tracked
 
 ---
 
